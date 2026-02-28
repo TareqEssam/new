@@ -217,7 +217,7 @@ function formatActivityResponse(activity, questionType) {
     // إضافة الجهة المصدرة إذا كانت متوفرة
     if (details.auth) {
         html += `<div class="info-row">
-            <div class="info-label">🏛️ الجهة المُصدرة:</div>
+            <div class="info-label">🏛️ الجهة المُصدرة للترخيص:</div>
             <div class="info-value">${details.auth}</div>
         </div>`;
     }
@@ -236,34 +236,46 @@ function formatActivityResponse(activity, questionType) {
     if ((details.guides && details.guides.length > 0) || details.link) {
         html += `<div style="margin-top: 15px; border-top: 1px dashed #cfe2ff; padding-top: 10px;">
                     <div style="color: #084298; font-weight: bold; margin-bottom: 8px;">
-                        📚 الأدلة والملفات الإرشادية:
+                        📚 المصادر : 
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 8px;">`;
         
-        // مساعدة لمعالجة الرابط
-        const getDownloadUrl = (url) => {
-            if (url.includes('drive.google.com/file/d/')) {
-                const match = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
-                return match ? `https://drive.google.com/uc?export=download&id=${match[1]}` : url;
-            }
-            return url;
-        };
-
+       // استخدام الدالة الذكية الموحدة لاستخراج روابط العرض والتحميل
         if (details.guides && details.guides.length > 0) {
             details.guides.forEach(guide => {
+                const links = getSmartLinksGPT(guide.link);
                 html += `
-                <a href="${guide.link}" target="_blank" class="link-btn" style="width: 100%; justify-content: space-between; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); color: #0d6efd !important; border: 1px solid #0d6efd; box-shadow: none;">
-                    <span><i class="fas fa-book-open"></i> ${guide.name}</span>
-                    <i class="fas fa-external-link-alt" style="font-size: 0.8rem;"></i>
-                </a>`;
+                <div style="background: white; border: 1px solid #cfe2ff; border-radius: 8px; padding: 10px; margin-bottom: 5px;">
+                    <div style="font-weight: bold; color: #084298; margin-bottom: 8px;">
+                        <i class="fas fa-book-open"></i> ${guide.name}
+                    </div>
+                    <div style="display: flex; gap: 8px;">
+                        <a href="${links.viewUrl}" target="_blank" class="link-btn" style="flex:1; justify-content:center; background: #e0f2fe; color: #0369a1 !important; box-shadow:none; border: 1px solid #bae6fd;">
+                            <i class="fas fa-eye"></i> عرض
+                        </a>
+                        <a href="${links.downloadUrl}" target="_blank" class="link-btn" style="flex:1; justify-content:center; box-shadow:none;">
+                            <i class="fas fa-download"></i> تحميل
+                        </a>
+                    </div>
+                </div>`;
             });
         } else if (details.link) {
-            const guideName = details.guid || "عرض دليل التراخيص";
+            const guideName = details.guid || "دليل الترخيص";
+            const links = getSmartLinksGPT(details.link);
             html += `
-            <a href="${details.link}" target="_blank" class="link-btn" style="width: 100%; justify-content: space-between;">
-                <span><i class="fas fa-file-download"></i> ${guideName}</span>
-                <i class="fas fa-external-link-alt" style="font-size: 0.8rem;"></i>
-            </a>`;
+            <div style="background: white; border: 1px solid #cfe2ff; border-radius: 8px; padding: 10px; margin-bottom: 5px;">
+                <div style="font-weight: bold; color: #084298; margin-bottom: 8px;">
+                    <i class="fas fa-book-open"></i> ${guideName}
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <a href="${links.viewUrl}" target="_blank" class="link-btn" style="flex:1; justify-content:center; background: #e0f2fe; color: #0369a1 !important; box-shadow:none; border: 1px solid #bae6fd;">
+                        <i class="fas fa-eye"></i> عرض
+                    </a>
+                    <a href="${links.downloadUrl}" target="_blank" class="link-btn" style="flex:1; justify-content:center; box-shadow:none;">
+                        <i class="fas fa-download"></i> تحميل
+                    </a>
+                </div>
+            </div>`;
         }
         
         html += `   </div>
