@@ -82,3 +82,52 @@ function updateLicenseRequirements() {
         if (typeof initProductionFlow === 'function') initProductionFlow(selectedValue);
     }
 }
+
+// -------------------------------------------------------------------
+// منظومة التنقل بين الشاشات الرئيسية 
+// -------------------------------------------------------------------
+
+// 1. دالة مساعدة لتوحيد عملية التنقل وتنظيف أي ستايلات معلقة تعيق الظهور
+function navigateToStep(stepId) {
+    document.querySelectorAll('.step-section').forEach(section => {
+        section.classList.remove('active');
+        section.style.display = ''; // ✨ تفريغ الستايل المباشر للسماح للـ CSS بالتحكم الصحيح
+    });
+    
+    const targetStep = document.getElementById(stepId);
+    if (targetStep) {
+        targetStep.classList.add('active');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+// 2. دالة تسجيل الدخول - الانتقال إلى الشاشة الثانية
+function handleLogin() {
+    navigateToStep('step2');
+}
+
+// 3. دالة تسجيل الخروج - الانتقال إلى شاشة الخروج
+function handleLogout() {
+    navigateToStep('step-logout');
+}
+
+// 4. دالة للعودة لصفحة تسجيل الدخول بأمان
+function goToLogin() {
+    navigateToStep('step1');
+}
+
+// دالة إظهار وإخفاء حقول النصوص في شاشة "رأي اللجنة"
+function toggleTextArea(elementId, isChecked) {
+    const element = document.getElementById(elementId);
+    if (element) {
+        element.style.display = isChecked ? 'block' : 'none';
+    }
+}
+
+// ربط الدالة بـ window لتعمل بشكل صحيح مع onchange في الـ HTML
+window.toggleTextArea = toggleTextArea;
+
+// ربط الدوال بالكائن window لضمان عمل أزرار onclick في الـ HTML بشكل دائم
+window.handleLogin = handleLogin;
+window.handleLogout = handleLogout;
+window.goToLogin = goToLogin;
