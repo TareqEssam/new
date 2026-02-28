@@ -4022,7 +4022,7 @@ function analyzeInvoices() {
 }
 //-----------------------
 
-/* نظام التحقق من وجود شركات أخرى في الموقع - نسخة محسّنة مع OpenStreetMap */
+/* نظام التحقق من وجود شركات أخرى في الموقع -اختبار الموقع- نسخة محسّنة مع OpenStreetMap */
 
 // قاعدة بيانات للاختبار
 const fakeCompaniesDB = [
@@ -4036,10 +4036,15 @@ const fakeCompaniesDB = [
    { name: "مصنع الصفا للنحاس", responsible: "حسين حسين حسن", mobile: "201063003278", address: "مدينة نصر - الوفاء والامل", governorate: "القاهرة", city: "مدينة نصر", lat: 30.0344048, lng: 31.3465232 },
    { name: "مصنع الصفا للالومنيوم", responsible: "حسنين ابوحسين حسان", mobile: "201063003278", address: "مدينة نصر - الوفاء والامل", governorate: "القاهرة", city: "مدينة نصر", lat: 30.0342647, lng: 31.3462480 },
 
+   { name: "مصنع سما فارم للادوية", responsible: "حسنين ابوحسين حسان", mobile: "201063003278", address: "مدينة نصر - الوفاء والامل", governorate: "القاهرة", city: "مدينة نصر", lat: 30.0310000, lng: 31.2348000 },
+
+   { name: "مصنع سما فارم2 للادوية", responsible: "حسنين ابوحسين حسان", mobile: "201063003278", address: "مدينة نصر - الوفاء والامل", governorate: "القاهرة", city: "مدينة نصر", lat: 30.0191581, lng: 31.2303670 },
+
     { name: "شركة شمال الدلتا لنقل", responsible: "محمد حسين ابراهيم", mobile: "201063003278", address: "مدينة نصر - صلاح سالم", governorate: "القاهرة", city: "مدينة نصر", lat: 29.9728896, lng: 30.9460992 }
 
 
 ];
+
 
 const SEARCH_RADIUS_KM = 0.5;
 const locationChecks = new Map();
@@ -5745,6 +5750,7 @@ if (document.readyState === 'loading') {
             if (biCharts.waste) biCharts.waste.destroy();
             biCharts.waste = new Chart(ctx6, { type: 'bar', data: { labels: ['عضوية', 'معادن', 'بلاستيك', 'ورق', 'كيماويات'], datasets: [{ label: 'الكمية (طن)', data: [4200, 3100, 2450, 1800, 900], backgroundColor: '#95a5a6' }] }, options: { responsive: true, maintainAspectRatio: false } });
         }
+
 
 
 
