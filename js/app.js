@@ -1,5 +1,3 @@
-
-
 //--------------------
 
 // 1. بيانات نظام وصف الموقع
@@ -1502,8 +1500,91 @@ if (osmAddressLabel) {
 button.disabled = true;
 button.innerHTML = '📡 جاري الاتصال بالأقمار الصناعية...';
 
+    // ======================================================
+    // دالة مساعدة: تعبئة الواجهة بعد الحصول على الإحداثيات
+    // تُستخدم من GPS ومن IP كليهما
+    // ======================================================
+    async function applyLocationData(lat, long, accuracy, sourceLabel) {
+        latInput.value = lat.toFixed(7);
+        longInput.value = long.toFixed(7);
+        const googleMapsUrl = `https://www.google.com/maps?q=${lat},${long}`;
+        mapLinkInput.value = googleMapsUrl;
+        btnOpenMap.disabled = false;
+
+        statusDiv.style.display = 'block';
+        errorDiv.style.display = 'none';
+        button.disabled = false;
+        button.innerHTML = `✅ تم التحديد ${sourceLabel}`;
+
+        if (osmAddressLabel) {
+            osmAddressLabel.textContent = '⏳ جاري تحديث البيانات...';
+            osmAddressLabel.className = 'mb-0 text-info small fw-bold';
+        }
+
+        // جلب بيانات OSM في الخلفية
+        (async () => {
+            try {
+                const addressData = await getAddressDataFromOSM(lat, long);
+                if (addressData && addressData.display_name) {
+                    if (osmAddressLabel) {
+                        osmAddressLabel.textContent = addressData.display_name;
+                        osmAddressLabel.className = 'mb-0 text-success small fw-bold';
+                    }
+                    const { governorate, city } = extractGovernorateAndCity(addressData.address || addressData);
+                    if (governorate && governorateSelect) {
+                        updateSelectWithValue(governorateSelect, governorate);
+                        updateCitiesForLocation(governorateSelect);
+                        if (city && citySelect) {
+                            setTimeout(() => updateSelectWithValue(citySelect, city), 50);
+                        }
+                    }
+                    if (addressDetailsInput) {
+                        const cleanAddress = extractCleanAddress(addressData.display_name, governorate, city);
+                        addressDetailsInput.value = cleanAddress;
+                    }
+                }
+            } catch (err) {
+                console.error('خطأ في جلب بيانات OSM:', err);
+                if (osmAddressLabel) {
+                    osmAddressLabel.textContent = '⚠️ تعذر جلب تفاصيل العنوان';
+                    osmAddressLabel.className = 'mb-0 text-warning small fw-bold';
+                }
+            }
+        })();
+    }
+
+    // ======================================================
+    // دالة الـ Fallback: تحديد الموقع عبر IP (بدون إذن GPS)
+    // ======================================================
+    async function getLocationByIP() {
+        button.innerHTML = '🌐 جاري التحديد عبر الشبكة...';
+        try {
+            // خدمة مجانية لتحديد الموقع عبر IP بدون مفتاح API
+            const response = await fetch('https://ipapi.co/json/');
+            if (!response.ok) throw new Error('IP API failed');
+            const data = await response.json();
+            if (data && data.latitude && data.longitude) {
+                await applyLocationData(
+                    parseFloat(data.latitude),
+                    parseFloat(data.longitude),
+                    5000, // دقة تقريبية (5 كم)
+                    '(عبر IP - دقة تقريبية)'
+                );
+            } else {
+                throw new Error('No coordinates in IP response');
+            }
+        } catch (err) {
+            console.error('IP Geolocation failed:', err);
+            handleLocationErrorForLocation(errorDiv, button, '❌ تعذر تحديد الموقع. يرجى السماح بالوصول إلى الموقع أو التحقق من الاتصال.');
+        }
+    }
+
+    // ======================================================
+    // المنطق الرئيسي: GPS أولاً → IP كبديل تلقائي
+    // ======================================================
     if (!navigator.geolocation) {
-        handleLocationErrorForLocation(errorDiv, button, "المتصفح لا يدعم تحديد الموقع الجغرافي");
+        // المتصفح لا يدعم GPS → ننتقل مباشرة لـ IP
+        await getLocationByIP();
         return;
     }
 
@@ -1513,82 +1594,21 @@ button.innerHTML = '📡 جاري الاتصال بالأقمار الصناعي
                 const lat = position.coords.latitude;
                 const long = position.coords.longitude;
                 const accuracy = position.coords.accuracy;
-                
-                // تعبئة حقول الإحداثيات
-                // تحديث واجهة النجاح فوراً
-latInput.value = lat.toFixed(7);
-longInput.value = long.toFixed(7);
-const googleMapsUrl = `https://www.google.com/maps?q=${lat},${long}`;
-mapLinkInput.value = googleMapsUrl;
-btnOpenMap.disabled = false;
-
-statusDiv.style.display = 'block';
-errorDiv.style.display = 'none';
-button.disabled = false;
-button.innerHTML = `✅ تم التحديد (الدقة: ${Math.round(accuracy)}م)`;
-
-// عرض رسالة مؤقتة
-if (osmAddressLabel) {
-    osmAddressLabel.textContent = '⏳ جاري تحديث البيانات...';
-    osmAddressLabel.className = 'mb-0 text-info small fw-bold';
-}
-
-// تنفيذ طلبات OSM في الخلفية بدون انتظار
-(async () => {
-    try {
-        // طلب واحد فقط للحصول على كل البيانات
-        const addressData = await getAddressDataFromOSM(lat, long);
-        
-        if (addressData && addressData.display_name) {
-            // تحديث العنوان فوراً
-            if (osmAddressLabel) {
-                osmAddressLabel.textContent = addressData.display_name;
-                osmAddressLabel.className = 'mb-0 text-success small fw-bold';
+                await applyLocationData(lat, long, accuracy, `(الدقة: ${Math.round(accuracy)}م)`);
+            } catch (err) {
+                console.error('خطأ في معالجة الموقع:', err);
+                handleLocationErrorForLocation(errorDiv, button, 'حدث خطأ أثناء معالجة بيانات الموقع');
             }
-            
-            // استخراج المحافظة والمدينة
-            const { governorate, city } = extractGovernorateAndCity(addressData.address || addressData);
-            
-            // تحديث القوائم فوراً بدون انتظار
-            if (governorate && governorateSelect) {
-                updateSelectWithValue(governorateSelect, governorate);
-                updateCitiesForLocation(governorateSelect);
-                
-                // تحديث المدينة بعد 50ms لضمان تحديث القائمة
-                if (city && citySelect) {
-                    setTimeout(() => updateSelectWithValue(citySelect, city), 50);
-                }
-            }
-            
-            // تحديث تفاصيل العنوان
-            if (addressDetailsInput) {
-                const cleanAddress = extractCleanAddress(addressData.display_name, governorate, city);
-                addressDetailsInput.value = cleanAddress;
-            }
-        }
-    } catch (err) {
-        console.error('خطأ في جلب بيانات OSM:', err);
-        if (osmAddressLabel) {
-            osmAddressLabel.textContent = '⚠️ تعذر جلب تفاصيل العنوان';
-            osmAddressLabel.className = 'mb-0 text-warning small fw-bold';
-        }
-    }
-})();
-
-
-
-} catch (err) {
-    console.error('خطأ في معالجة الموقع:', err);
-    handleLocationErrorForLocation(errorDiv, button, 'حدث خطأ أثناء معالجة بيانات الموقع');
-}
         },
-        (error) => {
-            handleErrorResponseForLocation(error, errorDiv, button);
+        async (error) => {
+            // ← هنا الحل العبقري: عند رفض GPS أو فشله → ننتقل لـ IP تلقائياً
+            console.warn('GPS failed, switching to IP geolocation. Error:', error.code);
+            await getLocationByIP();
         },
         {
-            enableHighAccuracy: true,
-            timeout: 30000,
-            maximumAge: 10000
+            enableHighAccuracy: false,  // ← تغيير: false يعني لا يشترط GPS حقيقي
+            timeout: 10000,             // ← تقليل المهلة (10 ثوانٍ بدل 30)
+            maximumAge: 60000           // ← قبول موقع محفوظ حتى دقيقة
         }
     );
 }
@@ -5750,8 +5770,3 @@ if (document.readyState === 'loading') {
             if (biCharts.waste) biCharts.waste.destroy();
             biCharts.waste = new Chart(ctx6, { type: 'bar', data: { labels: ['عضوية', 'معادن', 'بلاستيك', 'ورق', 'كيماويات'], datasets: [{ label: 'الكمية (طن)', data: [4200, 3100, 2450, 1800, 900], backgroundColor: '#95a5a6' }] }, options: { responsive: true, maintainAspectRatio: false } });
         }
-
-
-
-
-
